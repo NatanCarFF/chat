@@ -93,6 +93,46 @@
         #clear-button:hover {
             background: #e12d2b;
         }
+
+        /* Estilo para centralizar o campo de digitação da atividade */
+        #input-atividade-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1e1e2e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            z-index: 1000;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        #input-atividade-container input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+            font-size: 16px;
+        }
+        
+        #input-atividade-container button {
+            margin-top: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #input-atividade-container button:hover {
+            background: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +150,7 @@
     <script>
         let agenda = getData("agenda") || {};
         let respostas = getData("respostas") || {};
+        let inputAtividadeContainer = null;
 
         function sendMessage() {
             const input = document.getElementById("user-input");
@@ -154,19 +195,10 @@
         }
 
         function handleAgenda() {
-            askInput("📅 Qual dia?", (data) => {
+            askInputWithDate("📅 Qual dia?", (data) => {
                 if (data) {
-                    askInput("📝 Qual atividade?", (atividade) => {
-                        if (atividade) {
-                            if (!agenda[data]) agenda[data] = [];
-                            agenda[data].push(` ${atividade}`);
-                            appendMessage("Natan", `🎉 Agendado: '${atividade}' para o dia ${data}.`, "bot");
-                            saveData();
-                            askFurther();
-                        } else {
-                            appendMessage("Natan", "❌ Nenhuma atividade informada.", "bot");
-                        }
-                    });
+                    // Centraliza o campo para digitar a atividade
+                    showActivityInput(data);
                 } else {
                     appendMessage("Natan", "❌ Nenhuma data informada.", "bot");
                 }
@@ -174,7 +206,7 @@
         }
 
         function handleListar() {
-            askInput("📅 Qual dia deseja listar?", (data) => {
+            askInputWithDate("📅 Qual dia deseja listar?", (data) => {
                 if (agenda[data]) {
                     let atividades = agenda[data].map(atividade => `<div>📌 ${atividade}</div>`).join("");
                     appendMessage("Natan", `Atividades para o dia ${data}:<br>${atividades}`, "bot");
@@ -182,6 +214,33 @@
                     appendMessage("Natan", "❌ Nenhuma atividade encontrada para esse dia.", "bot");
                 }
             });
+        }
+
+        function showActivityInput(data) {
+            // Cria o container para digitar a atividade
+            inputAtividadeContainer = document.createElement("div");
+            inputAtividadeContainer.id = "input-atividade-container";
+            inputAtividadeContainer.innerHTML = `
+                <p><strong>📝 Qual atividade para o dia ${data}?</strong></p>
+                <input type="text" id="atividade-input" placeholder="Digite a atividade">
+                <button onclick="saveActivity('${data}')">Salvar</button>
+            `;
+            document.body.appendChild(inputAtividadeContainer);
+        }
+
+        function saveActivity(data) {
+            const atividadeInput = document.getElementById("atividade-input");
+            const atividade = atividadeInput.value.trim();
+            if (atividade) {
+                if (!agenda[data]) agenda[data] = [];
+                agenda[data].push(atividade);
+                appendMessage("Natan", `🎉 Agendado: '${atividade}' para o dia ${data}.`, "bot");
+                saveData();
+                document.body.removeChild(inputAtividadeContainer);  // Remove o campo de digitação
+                askFurther();
+            } else {
+                appendMessage("Natan", "❌ Nenhuma atividade informada.", "bot");
+            }
         }
 
         function handleDeletar() {
@@ -224,6 +283,56 @@
             } else {
                 appendMessage("Natan", "❌ Entrada inválida. Tente novamente.", "bot");
             }
+        }
+
+        function askInputWithDate(promptText, callback) {
+            const dateInput = document.createElement("input");
+            dateInput.type = "date";
+            dateInput.style.padding = "10px";
+            dateInput.style.border = "none";
+            dateInput.style.borderRadius = "5px";
+            dateInput.style.background = "#333";
+            dateInput.style.color = "white";
+
+            const container = document.createElement("div");
+            container.innerHTML = promptText;
+            container.appendChild(dateInput);
+
+            const modal = document.createElement("div");
+            modal.style.position = "fixed";
+            modal.style.top = "0";
+            modal.style.left = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+            modal.style.display = "flex";
+            modal.style.alignItems = "center";
+            modal.style.justifyContent = "center";
+            modal.style.zIndex = "1000";
+
+            const modalContent = document.createElement("div");
+            modalContent.style.background = "#1e1e2e";
+            modalContent.style.padding = "20px";
+            modalContent.style.borderRadius = "15px";
+            modalContent.style.textAlign = "center";
+
+            const submitButton = document.createElement("button");
+            submitButton.innerText = "Confirmar";
+            submitButton.style.marginTop = "10px";
+            submitButton.style.background = "#4CAF50";
+            submitButton.style.border = "none";
+            submitButton.style.color = "white";
+            submitButton.style.padding = "10px";
+            submitButton.style.borderRadius = "5px";
+            submitButton.onclick = () => {
+                callback(dateInput.value);
+                document.body.removeChild(modal);
+            };
+
+            modalContent.appendChild(container);
+            modalContent.appendChild(submitButton);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
         }
 
         function askFurther() {
