@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        #chat-container {
+            width: 90%;
+            max-width: 600px;
+            background: #1e1e2e;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        #chat-box {
+            height: 350px;
+            overflow-y: auto;
+            padding: 10px;
+            text-align: left;
+            background: #252538;
+            border-radius: 10px;
+            border-bottom: 2px solid #252538;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+            display: inline-block;
+        }
+        .user {
+            background: #4caf50;
+            color: white;
+            align-self: flex-end;
+        }
+        .bot {
+            background: #1b9aaa;
+            color: white;
+            align-self: flex-start;
+        }
+        #input-container {
+            display: flex;
+            margin-top: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            background: #333;
+            color: white;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            background: #e94560;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #d63353;
+        }
+        #clear-button {
+            background: #ff3b30;
+            margin-top: 20px;
+        }
+        #clear-button:hover {
+            background: #e12d2b;
+        }
+        #password-input {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Agenda Chat</h1>
+    <div id="chat-container">
+        <div id="chat-box"></div>
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="Digite..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+        <button id="clear-button" onclick="showPasswordInput()">Limpar Memória</button>
+        <input type="password" id="password-input" placeholder="Digite a senha para limpar" style="display:none" onkeypress="handlePasswordInput(event)">
+    </div>
+
+    <script>
+        let agenda = getData("agenda") || {}; // Certificando-se de que "agenda" tem um valor padrão
+        let respostas = getData("respostas") || {};
+
+        function sendMessage() {
+            const input = document.getElementById("user-input");
+            const message = input.value.trim().toLowerCase();
+            if (!message) return;
+
+            appendMessage("Você", message, "user");
+            input.value = "";
+
+            setTimeout(() => processCommand(message), 500);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        function appendMessage(sender, text, className) {
+            const chatBox = document.getElementById("chat-box");
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", className);
+            messageDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function processCommand(command) {
+            if (command === "agendar") {
+                handleAgenda();
+            } else if (command === "listar") {
+                handleListar();
+            } else if (command === "deletar") {
+                handleDeletar();
+            } else if (command.startsWith("me responda ")) {
+                handleRespostas(command);
+            } else if (respostas[command]) {
+                appendMessage("Natan", respostas[command], "bot");
+            } else {
+                appendMessage("Natan", "Comandos disponíveis: 'agendar', 'listar', 'deletar', 'me responda [resposta] quando eu perguntar [pergunta]'.", "bot");
+            }
+        }
+
+        function handleAgenda() {
+            askInput("📅 Qual dia?", (data) => {
+                if (data) {
+                    askInput("📝 Qual atividade?", (atividade) => {
+                        if (atividade) {
+                            if (!agenda[data]) agenda[data] = []; // Se o dia não existir, cria um novo
+                            agenda[data].push(` ${atividade}`);
+                            appendMessage("Natan", `🎉 Agendado: '${atividade}' para o dia ${data}.`, "bot");
+                            saveData();
+                            askFurther();
+                        } else {
+                            appendMessage("Natan", "❌ Nenhuma atividade informada.", "bot");
+                        }
+                    });
+                } else {
+                    appendMessage("Natan", "❌ Nenhuma data informada.", "bot");
+                }
+            });
+        }
+
+        function handleListar() {
+            askInput("📅 Qual dia deseja listar?", (data) => {
+                if (agenda[data]) {
+                    let atividades = agenda[data].map(atividade => `<div>📌 ${atividade}</div>`).join("");
+                    appendMessage("Natan", `Atividades para o dia ${data}:<br>${atividades}`, "bot");
+                } else {
+                    appendMessage("Natan", "❌ Nenhuma atividade encontrada para esse dia.", "bot");
+                }
+            });
+        }
+
+        function handleDeletar() {
+            askInput("📅 Qual dia deseja deletar a atividade?", (data) => {
+                if (agenda[data]) {
+                    askInput("📝 Qual atividade deseja deletar?", (atividade) => {
+                        const index = agenda[data].indexOf(atividade);
+                        if (index !== -1) {
+                            agenda[data].splice(index, 1);
+                            if (agenda[data].length === 0) delete agenda[data];
+                            appendMessage("Natan", `🗑️ Atividade '${atividade}' deletada para o dia ${data}.`, "bot");
+                            saveData();
+                            askFurther();
+                        } else {
+                            appendMessage("Natan", `❌ Atividade '${atividade}' não encontrada.`, "bot");
+                        }
+                    });
+                } else {
+                    appendMessage("Natan", "❌ Nenhuma atividade encontrada para esse dia.", "bot");
+                }
+            });
+        }
+
+        function handleRespostas(command) {
+            const partes = command.replace("me responda ", "").split(" quando eu perguntar ");
+            if (partes.length === 2) {
+                respostas[partes[1].trim()] = partes[0].trim();
+                appendMessage("Natan", `✅ Entendido! Quando você perguntar '${partes[1].trim()}', responderei '${partes[0].trim()}'.`, "bot");
+                saveData();
+                askFurther();
+            } else {
+                appendMessage("Natan", "❌ Formato incorreto! Use: 'me responda [resposta] quando eu perguntar [pergunta]'.", "bot");
+            }
+        }
+
+        function askInput(promptText, callback) {
+            const input = prompt(promptText);
+            if (input !== null && input.trim()) {
+                callback(input.trim());
+            } else {
+                appendMessage("Natan", "❌ Entrada inválida. Tente novamente.", "bot");
+            }
+        }
+
+        function askFurther() {
+            setTimeout(() => appendMessage("Natan", "💬 Posso ajudar com mais alguma coisa?", "bot"), 1000);
+        }
+
+        function getData(key) {
+            return JSON.parse(localStorage.getItem(key)) || {}; // Garantindo valor padrão
+        }
+
+        function saveData() {
+            localStorage.setItem("agenda", JSON.stringify(agenda));
+            localStorage.setItem("respostas", JSON.stringify(respostas));
+        }
+
+        // Função para mostrar o campo de senha
+        function showPasswordInput() {
+            document.getElementById("password-input").style.display = "block";
+        }
+
+        // Função para verificar a senha e limpar memória
+        function handlePasswordInput(event) {
+            if (event.key === "Enter") {
+                const password = document.getElementById("password-input").value.trim();
+                if (password === "esquecertudo") {
+                    clearMemory();
+                } else {
+                    appendMessage("Natan", "❌ Senha incorreta. Tente novamente.", "bot");
+                }
+            }
+        }
+
+        // Função para limpar memória
+        function clearMemory() {
+            if (confirm("⚠️ Tem certeza que deseja limpar todos os dados armazenados?")) {
+                localStorage.removeItem("agenda");
+                localStorage.removeItem("respostas");
+                agenda = {};
+                respostas = {};
+                document.getElementById("password-input").value = "";
+                document.getElementById("password-input").style.display = "none";
+                appendMessage("Natan", "✅ Memória limpa com sucesso!", "bot");
+            }
+        }
+
+        setTimeout(() => appendMessage("Natan", "💬 Olá! Digite 'agendar' para adicionar compromisso, 'listar' para ver compromissos, 'deletar' para excluir um compromisso ou ensine novas respostas com 'me responda [resposta] quando eu perguntar [pergunta]'.", "bot"), 1000);
+    </script>
+</body>
+</html>
