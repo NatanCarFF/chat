@@ -9,23 +9,28 @@
             font-family: Arial, sans-serif;
             background-color: #121212;
             color: white;
-            text-align: center;
             margin: 0;
             padding: 20px;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
             height: 100vh;
+            text-align: center;
         }
         #chat-container {
-            width: 90%;
+            width: 100%;
             max-width: 600px;
             background: #1e1e2e;
             padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
             display: flex;
             flex-direction: column;
+            gap: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
         }
         #chat-box {
             height: 350px;
@@ -37,6 +42,7 @@
             border-bottom: 2px solid #252538;
             display: flex;
             flex-direction: column;
+            gap: 8px;
         }
         .message {
             margin: 8px 0;
@@ -57,16 +63,16 @@
         }
         #input-container {
             display: flex;
-            margin-top: 10px;
+            gap: 10px;
         }
-        input {
+        input[type="text"], input[type="password"] {
             flex: 1;
             padding: 10px;
             border: none;
             border-radius: 5px;
-            outline: none;
             background: #333;
             color: white;
+            outline: none;
         }
         button {
             padding: 10px;
@@ -75,7 +81,7 @@
             color: white;
             cursor: pointer;
             border-radius: 5px;
-            margin-left: 10px;
+            width: 100px;
         }
         button:hover {
             background: #d63353;
@@ -87,20 +93,11 @@
         #clear-button:hover {
             background: #e12d2b;
         }
-        #password-input {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #333;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            width: 80%;
-        }
     </style>
 </head>
 <body>
-    <h1>Agenda Chat</h1>
     <div id="chat-container">
+        <h1>Agenda Chat</h1>
         <div id="chat-box"></div>
         <div id="input-container">
             <input type="text" id="user-input" placeholder="Digite..." onkeypress="handleKeyPress(event)">
@@ -111,7 +108,7 @@
     </div>
 
     <script>
-        let agenda = getData("agenda") || {}; // Certificando-se de que "agenda" tem um valor padrão
+        let agenda = getData("agenda") || {};
         let respostas = getData("respostas") || {};
 
         function sendMessage() {
@@ -161,7 +158,7 @@
                 if (data) {
                     askInput("📝 Qual atividade?", (atividade) => {
                         if (atividade) {
-                            if (!agenda[data]) agenda[data] = []; // Se o dia não existir, cria um novo
+                            if (!agenda[data]) agenda[data] = [];
                             agenda[data].push(` ${atividade}`);
                             appendMessage("Natan", `🎉 Agendado: '${atividade}' para o dia ${data}.`, "bot");
                             saveData();
@@ -234,7 +231,7 @@
         }
 
         function getData(key) {
-            return JSON.parse(localStorage.getItem(key)) || {}; // Garantindo valor padrão
+            return JSON.parse(localStorage.getItem(key)) || {};
         }
 
         function saveData() {
@@ -242,12 +239,10 @@
             localStorage.setItem("respostas", JSON.stringify(respostas));
         }
 
-        // Função para mostrar o campo de senha
         function showPasswordInput() {
             document.getElementById("password-input").style.display = "block";
         }
 
-        // Função para verificar a senha e limpar memória
         function handlePasswordInput(event) {
             if (event.key === "Enter") {
                 const password = document.getElementById("password-input").value.trim();
@@ -259,7 +254,6 @@
             }
         }
 
-        // Função para limpar memória
         function clearMemory() {
             if (confirm("⚠️ Tem certeza que deseja limpar todos os dados armazenados?")) {
                 localStorage.removeItem("agenda");
